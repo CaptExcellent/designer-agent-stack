@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "nodeMinimum": 24,
+  "python": "3.13",
+  "npm": ["ui-ux-pro-max-cli", "agent-browser", "vercel"],
+  "serena": "serena-agent",
+  "skillSources": {
+    "vercel": "https://github.com/vercel-labs/agent-skills.git",
+    "browser": "https://github.com/vercel-labs/agent-browser.git"
+  },
+  "vercelSkills": ["react-best-practices", "composition-patterns", "vercel-optimize"],
+  "optionalDesignLint": ["npx", "--yes", "--package=@google/design.md", "designmd", "lint", "DESIGN.md"]
+}

@@ -1,0 +1,27 @@
+.venv/
+node_modules/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+.serena/
+.agents/
+.claude/
+.codex/
+artifacts/
+dist/
+*.log
+*.bak
+*.zip
+.DS_Store
+Thumbs.db
+
+# Local practice projects and their saved results
+examples/verification-v2/
+docs/VERIFICATION*.md
+scripts/view-tests.*
+tests/smoke/PROMPT.md
+tests/smoke/V2-PROMPT.md
+tests/smoke/browser_v2.py
+tests/smoke/create_v2_fixture.py
