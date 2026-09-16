@@ -39,6 +39,18 @@ def check_hooks(config):
                     raise RuntimeError('An RTK or Headroom hook is configured. Use one compression setup per session.')
 
 
+def enabled(value):
+    return str(value).strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def configured_value(environments, key):
+    for source in reversed(environments):
+        value = source.get(key)
+        if value not in (None, ''):
+            return str(value)
+    return None
+
+
 def client_plan(client, extra, tool, url, env, home, cwd):
     """Merge session settings only; reject routing we cannot safely preserve."""
     env = dict(env)
@@ -65,11 +77,13 @@ def client_plan(client, extra, tool, url, env, home, cwd):
                     for name in ('settings.json', 'settings.local.json')]
         for config in configs:
             check_hooks(config)
-        for config_env in [env, *(c.get('env', {}) for c in configs)]:
+        environments = [env, *(c.get('env', {}) for c in configs)]
+        for config_env in environments:
             check_endpoint(config_env, 'ANTHROPIC_BASE_URL', 'https://api.anthropic.com')
-            if any(config_env.get(key) not in (None, '', '0', 'false') for key in
-                   ('CLAUDE_CODE_USE_BEDROCK', 'CLAUDE_CODE_USE_VERTEX', 'CLAUDE_CODE_USE_FOUNDRY')):
-                raise RuntimeError('This launcher supports direct Anthropic routing only.')
+        if any(enabled(config_env.get(key)) for config_env in environments
+               for key in ('CLAUDE_CODE_USE_VERTEX', 'CLAUDE_CODE_USE_FOUNDRY')):
+            raise RuntimeError('This launcher does not support the configured Claude cloud provider.')
+        bedrock = any(enabled(config_env.get('CLAUDE_CODE_USE_BEDROCK')) for config_env in environments)
         mcp_configs = [read_config(home / '.claude.json'), read_config(config_dir / '.claude.json')]
         mcp_configs += [read_config(p / '.mcp.json') for p in ancestors]
         for config in mcp_configs:
@@ -77,6 +91,15 @@ def client_plan(client, extra, tool, url, env, home, cwd):
             if any(SERVER in c.get('mcpServers', {}) for c in scopes):
                 raise RuntimeError(f'MCP name {SERVER} is already in use.')
         session_env = {'ANTHROPIC_BASE_URL': url}
+        proxy = None
+        if bedrock:
+            region = configured_value(environments, 'AWS_REGION')
+            if not region:
+                raise RuntimeError('Bedrock requires AWS_REGION in the existing Claude settings.')
+            # Claude's Bedrock SDK bypasses ANTHROPIC_BASE_URL. Let Headroom use
+            # the existing AWS credentials/profile and re-sign its Bedrock calls.
+            session_env.update({'CLAUDE_CODE_USE_BEDROCK': '0', 'ANTHROPIC_API_KEY': 'headroom'})
+            proxy = ('bedrock', region, configured_value(environments, 'AWS_PROFILE'))
         # Custom endpoints otherwise disable Claude's deferred tool loading.
         search = env.get('ENABLE_TOOL_SEARCH')
         for config in configs:
@@ -84,7 +107,7 @@ def client_plan(client, extra, tool, url, env, home, cwd):
         session_env['ENABLE_TOOL_SEARCH'] = search or 'auto'
         env.update(session_env)
         return [command, '--settings', json.dumps({'env': session_env}),
-                '--mcp-config', json.dumps({'mcpServers': {SERVER: server}}), *extra], env
+                '--mcp-config', json.dumps({'mcpServers': {SERVER: server}}), *extra], env, proxy
 
     check_endpoint(env, 'OPENAI_BASE_URL', 'https://api.openai.com/v1')
     config_dir = Path(env.get('CODEX_HOME', home / '.codex'))
@@ -107,7 +130,7 @@ def client_plan(client, extra, tool, url, env, home, cwd):
     overrides += [f'mcp_servers.{SERVER}.env.{key}=' + json.dumps(value)
                   for key, value in mcp_env.items()]
     args = [item for override in overrides for item in ('-c', override)]
-    return [command, *args, *extra], env
+    return [command, *args, *extra], env, None
 
 
 def wait_ready(process, url, timeout=120):
@@ -201,12 +224,18 @@ def main(argv=None, state=None):
                    HEADROOM_OUTPUT_SHAPER='0')
         url = f'http://127.0.0.1:{args.port}'
         extra = args.client_args[1:] if args.client_args[:1] == ['--'] else args.client_args
-        command, client_env = client_plan(args.client, extra, tool, url, env, Path.home(), Path.cwd())
+        command, client_env, provider = client_plan(args.client, extra, tool, url, env, Path.home(), Path.cwd())
         proxy_args = [str(tool), 'proxy', '--host', '127.0.0.1', '--port', str(args.port),
                       '--mode', 'cache', '--no-cache', '--no-rate-limit']
+        if provider:
+            _, region, profile = provider
+            proxy_args += ['--backend', 'bedrock', '--region', region]
+            if profile:
+                proxy_args += ['--bedrock-profile', profile]
         if args.dry_run:
             print(f'Headroom {manifest.get("versions", {}).get("headroom", "unknown")} -> {args.client} at {url}')
-            print('Cache-preserving compression; semantic response cache off; retrieval MCP enabled.')
+            mode = 'Bedrock via your existing AWS profile' if provider else 'direct provider routing'
+            print(f'Cache-preserving compression; semantic response cache off; retrieval MCP enabled; {mode}.')
             print('Session arguments only. No client files, hooks, provider identity, or account settings changed.')
             return 0
         return run_session(proxy_args, command, client_env, env, workspace, url, args.port)

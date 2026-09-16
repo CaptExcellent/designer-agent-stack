@@ -73,7 +73,7 @@ class HeadroomTests(unittest.TestCase):
                                'hooks': {'Stop': [{'hooks': [{'command': 'serena hook cleanup'}]}]}})
         self.write(path, original)
         self.write(self.home / '.claude.json', '{"mcpServers":{"serena":{"command":"keep"}}}')
-        command, env = self.plan('claude', ['-p', 'Review the design'])
+        command, env, provider = self.plan('claude', ['-p', 'Review the design'])
         settings = json.loads(command[command.index('--settings') + 1])
         self.assertEqual(settings['env']['ANTHROPIC_BASE_URL'], self.url)
         self.assertEqual(settings['env']['ENABLE_TOOL_SEARCH'], 'false')
@@ -82,6 +82,7 @@ class HeadroomTests(unittest.TestCase):
         self.assertEqual(servers[runner.SERVER]['args'], ['mcp', 'serve'])
         self.assertNotIn('--strict-mcp-config', command)
         self.assertEqual(env['KEEP'], 'unchanged')
+        self.assertIsNone(provider)
         self.assertEqual(path.read_text(), original)
         self.assertNotIn('ANTHROPIC_BASE_URL', self.env)
 
@@ -89,12 +90,13 @@ class HeadroomTests(unittest.TestCase):
         path = self.home / '.codex/config.toml'
         original = 'model="existing"\n[mcp_servers.serena]\ncommand="keep"\n'
         self.write(path, original)
-        command, env = self.plan('codex')
+        command, env, provider = self.plan('codex')
         self.assertIn('openai_base_url="' + self.url + '/v1"', command)
         self.assertFalse(any('model_provider=' in arg for arg in command))
         self.assertFalse(any(arg.startswith('model=') for arg in command))
         self.assertEqual(env['OPENAI_BASE_URL'], self.url + '/v1')
         self.assertEqual(path.read_text(), original)
+        self.assertIsNone(provider)
 
     def test_custom_routing_and_profiles_rejected(self):
         for key, client in [('ANTHROPIC_BASE_URL', 'claude'), ('OPENAI_BASE_URL', 'codex')]:
@@ -109,9 +111,12 @@ class HeadroomTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'without a profile'):
                 self.plan('codex')
         self.write(self.home / 'project/.claude/settings.local.json',
-                   '{"env":{"CLAUDE_CODE_USE_BEDROCK":"1"}}')
-        with self.assertRaisesRegex(RuntimeError, 'direct Anthropic'):
-            self.plan('claude')
+                   '{"env":{"CLAUDE_CODE_USE_BEDROCK":"1", "AWS_REGION":"eu-west-1", "AWS_PROFILE":"team"}}')
+        command, env, provider = self.plan('claude')
+        session = json.loads(command[command.index('--settings') + 1])['env']
+        self.assertEqual(session['CLAUDE_CODE_USE_BEDROCK'], '0')
+        self.assertEqual(session['ANTHROPIC_API_KEY'], 'headroom')
+        self.assertEqual(provider, ('bedrock', 'eu-west-1', 'team'))
 
     def test_conflicting_hooks_and_reserved_mcp_rejected(self):
         path = self.home / '.claude/settings.json'
@@ -129,7 +134,7 @@ class HeadroomTests(unittest.TestCase):
             with self.subTest(client=client, args=args):
                 with self.assertRaisesRegex(RuntimeError, 'not supported'):
                     self.plan(client, args)
-        command, _ = self.plan('codex', ['--', '--profile is a topic'])
+        command, _, _ = self.plan('codex', ['--', '--profile is a topic'])
         self.assertEqual(command[-1], '--profile is a topic')
 
     def test_dry_run_writes_nothing_and_disabled_fails(self):

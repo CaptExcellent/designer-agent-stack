@@ -5,6 +5,7 @@ Headroom integration checked 2026-09-16:
 - [Headroom 0.37.0](https://github.com/headroomlabs-ai/headroom/tree/v0.37.0): separate proxy and `mcp serve` entry points; cache mode and workspace/config isolation. The stack does not call the upstream installer, wrappers or cleanup routines.
 - [Codex config reference](https://learn.chatgpt.com/docs/config-file/config-reference): session `-c` overrides, built-in `openai_base_url` and additive MCP server configuration.
 - [Claude CLI reference](https://code.claude.com/docs/en/cli-reference): session `--settings` and additive `--mcp-config`; no strict MCP replacement.
+- [Headroom Bedrock guide](https://github.com/headroomlabs-ai/headroom/blob/v0.37.0/docs/claude-code-bedrock-headroom.md): launch Claude temporarily in Anthropic mode so Headroom can use the pre-existing AWS profile and region for Bedrock.
 - [Licensing](THIRD_PARTY.md): upstream license, notices and model boundaries.
 
 Integration validation on macOS: 32 unit tests passed; isolated installation of

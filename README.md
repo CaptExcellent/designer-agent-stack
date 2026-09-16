@@ -140,12 +140,15 @@ instructions. Existing skills, Serena, models, accounts and permission settings
 remain under their current ownership. Inherited `HEADROOM_*` tuning is replaced
 with this integration's isolated session configuration.
 
-Supported routing is direct Anthropic in **Claude Code CLI** and the built-in
-OpenAI provider in **Codex CLI**. Native Claude Desktop, ChatGPT and Codex desktop
-sessions are not automatically routed by installing this option. Custom gateways,
-cloud providers and Codex profiles require a separate integration. Detected
-conflicting endpoints, RTK/Headroom hooks and routing override arguments cause an
-explicit error. Enterprise-managed settings can impose additional restrictions.
+Supported routing is direct Anthropic and AWS Bedrock in **Claude Code CLI**, and
+the built-in OpenAI provider in **Codex CLI**. For Bedrock, the launcher temporarily
+routes Claude through Headroom and lets Headroom use the existing AWS profile and
+region; it does not alter persistent AWS or Claude settings. Native Claude Desktop,
+ChatGPT and Codex desktop sessions are not automatically routed by installing this
+option. Custom gateways, other cloud providers and Codex profiles require a separate
+integration. Detected conflicting endpoints, RTK/Headroom hooks and routing override
+arguments cause an explicit error. Enterprise-managed settings can impose additional
+restrictions.
 RTK is not installed; using two compression layers needs separate evaluation.
 
 To disable future launches, run `./scripts/install.sh --no-with-headroom` or
