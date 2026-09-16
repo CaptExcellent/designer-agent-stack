@@ -1,5 +1,20 @@
 # Upstream conventions checked 2026-09-06
 
+Headroom integration checked 2026-09-16:
+
+- [Headroom 0.37.0](https://github.com/headroomlabs-ai/headroom/tree/v0.37.0): separate proxy and `mcp serve` entry points; cache mode and workspace/config isolation. The stack does not call the upstream installer, wrappers or cleanup routines.
+- [Codex config reference](https://learn.chatgpt.com/docs/config-file/config-reference): session `-c` overrides, built-in `openai_base_url` and additive MCP server configuration.
+- [Claude CLI reference](https://code.claude.com/docs/en/cli-reference): session `--settings` and additive `--mcp-config`; no strict MCP replacement.
+- [Licensing](THIRD_PARTY.md): upstream license, notices and model boundaries.
+
+Integration validation on macOS: 32 unit tests passed; isolated installation of
+Headroom 0.37.0; live proxy health/readiness; MCP discovery, synthetic compression
+and exact original retrieval; real Codex CLI accepted additive session MCP
+configuration while preserving the existing Serena entry. The optional Kompress
+model reported not ready during this smoke test, so full ML compression was not
+validated. No authenticated model requests, billing comparison, desktop routing
+or live Windows/Linux sessions were tested.
+
 - [Codex skills](https://learn.chatgpt.com/docs/build-skills): user skills at `~/.agents/skills`; duplicate names are not merged.
 - [Codex instructions](https://developers.openai.com/codex/guides/agents-md): global `AGENTS.md` under CODEX_HOME, with repository precedence.
 - [Codex hooks](https://learn.chatgpt.com/docs/hooks): hooks.json, enabled by default, exact-definition trust review through `/hooks`. `hooks` is canonical; `codex_hooks` is a deprecated alias.

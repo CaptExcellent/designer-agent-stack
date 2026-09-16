@@ -115,7 +115,7 @@ class Context:
         if not value: raise RuntimeError(f'Missing executable: {name}')
         return Path(value)
 
-    def run(self, args, cwd=None, capture=False, timeout=600):
+    def run(self, args, cwd=None, capture=False, timeout=600, env=None):
         args = list(map(str, args))
         args[0] = str(self.executable(args[0])) if not Path(args[0]).is_absolute() else args[0]
         # npm .cmd is invoked through its JS entrypoint, avoiding cmd shell quoting.
@@ -126,7 +126,7 @@ class Context:
                      'agent-browser.cmd': 'node_modules/agent-browser/bin/agent-browser.js'}
             script = Path(args[0]).parent / names[Path(args[0]).name.lower()]
             if script.is_file(): args = [str(self.executable('node')), str(script), *args[1:]]
-        result = subprocess.run(args, cwd=cwd, env=self.env, text=True, encoding='utf-8', errors='replace',
+        result = subprocess.run(args, cwd=cwd, env=self.env if env is None else env, text=True, encoding='utf-8', errors='replace',
                                 capture_output=capture, timeout=timeout)
         if result.returncode:
             raise RuntimeError(f'Command failed ({result.returncode}): {Path(args[0]).name} ' + ' '.join(args[1:3]) +
@@ -301,6 +301,32 @@ def dependencies(ctx, update):
     ctx.data['versions']['serena'] = ctx.run(['uv', 'tool', 'list'], capture=True).splitlines()[0]
     ctx.save()
 
+def headroom_executable(ctx):
+    return ctx.state / 'headroom/bin' / ('headroom.exe' if WIN else 'headroom')
+
+
+def install_headroom(ctx, update=False, skip_dependencies=False):
+    if not ctx.data.get('options', {}).get('headroom'):
+        return
+    tool = headroom_executable(ctx)
+    version = TOOLS['headroom']['version']
+    env = {**ctx.env, 'UV_TOOL_DIR': str(ctx.state / 'headroom/tools'),
+           'UV_TOOL_BIN_DIR': str(tool.parent)}
+    if not skip_dependencies and (update or not tool.is_file() or
+                                  ctx.data['versions'].get('headroom') != version):
+        requirement = TOOLS['headroom']['package'] + '==' + version
+        # Separate tool environment and bin directory: never replace a user's Headroom.
+        command = ['uv', 'tool', 'install', '--python', TOOLS['python'], requirement]
+        if update: command.append('--upgrade')
+        ctx.run(command, env=env)
+    if not tool.is_file():
+        raise RuntimeError('Headroom runtime missing; reinstall with --with-headroom without --skip-dependencies.')
+    actual = ctx.run([tool, '--version'], capture=True, env=env)
+    if not re.search(r'\b' + re.escape(version) + r'\s*$', actual):
+        raise RuntimeError('Unexpected Headroom version: ' + actual)
+    ctx.data['versions']['headroom'] = version
+    ctx.save()
+
 def sources(ctx, update=False):
     store = ctx.state / 'sources'
     store.mkdir(parents=True, exist_ok=True)
@@ -369,6 +395,9 @@ def install_modules(ctx, destination):
 
 def install_reference_cli(ctx):
     runner = ctx.state / 'bin/stack-reference.py'
+    headroom_runner = ctx.state / 'bin/headroom_runner.py'
+    if headroom_runner.exists() and str(headroom_runner) not in ctx.data.get('files', {}):
+        raise RuntimeError(f'Unmanaged helper already exists: {headroom_runner}')
     for ident, expected in ctx.data.get('files', {}).items():
         path = Path(ident)
         if path.exists() and digest(path.read_bytes()) != expected:
@@ -382,7 +411,8 @@ def install_reference_cli(ctx):
         body = '#!/bin/sh\nexec ' + shlex.quote(sys.executable) + ' ' + shlex.quote(str(runner)) + ' "$@"\n'
     ctx.write(launcher, body)
     if not WIN: launcher.chmod(0o755)
-    ctx.data.setdefault('files', {}).update({str(p): digest(p.read_bytes()) for p in (runner, launcher)})
+    ctx.write(headroom_runner, (ROOT / 'scripts/headroom_runner.py').read_text(encoding='utf-8'))
+    ctx.data.setdefault('files', {}).update({str(p): digest(p.read_bytes()) for p in (runner, launcher, headroom_runner)})
     ctx.save()
 
 
@@ -458,6 +488,18 @@ def doctor(ctx):
         text = ctx.read(Path(record['path']))
         span = ctx.block_span(text, record['key'], record['prefix'])
         ctx.check('Managed block intact: ' + record['key'], span is not None and block_digest(text[span[0]:span[1]]) == record['hash'])
+    if ctx.data.get('options', {}).get('headroom'):
+        tool = headroom_executable(ctx)
+        ctx.check('Optional Headroom private runtime available', tool.is_file())
+        if tool.is_file():
+            try:
+                version = ctx.run([tool, '--version'], capture=True)
+            except (RuntimeError, OSError, subprocess.TimeoutExpired):
+                version = ''
+            ctx.check('Headroom matches reviewed version', bool(re.search(
+                r'\b' + re.escape(TOOLS['headroom']['version']) + r'\s*$', version)))
+        print('Headroom is session-only: agent-stack headroom claude or agent-stack headroom codex.')
+        print('Authenticated routing and savings require a live session; doctor does not start one.')
     print('Recorded versions:', json.dumps(ctx.data['versions'], indent=2))
     print('Restart clients after changes. Optional hook trust and authenticated behavior require a fresh session.')
     return 1 if ctx.failures else 0
@@ -517,6 +559,7 @@ def uninstall(ctx):
             broadcast_environment()
         ctx.data['pathEntries'] = []
     ctx.data['agents'] = []
+    ctx.data.setdefault('options', {})['headroom'] = False
     ctx.save()
     print('Removed unchanged owned integrations. Retained runtimes, caches, backups and edited files. No backups restored.')
 
@@ -530,6 +573,7 @@ def main():
     parser.add_argument('--skip-dependencies', action='store_true')
     parser.add_argument('--serena-hooks', action=argparse.BooleanOptionalAction, default=None)
     parser.add_argument('--with-vercel', action=argparse.BooleanOptionalAction, default=None)
+    parser.add_argument('--with-headroom', action=argparse.BooleanOptionalAction, default=None)
     args = parser.parse_args()
     ctx = Context()
     if args.command == 'doctor': return doctor(ctx)
@@ -540,6 +584,9 @@ def main():
     print('Target:', platform.system(), platform.machine(), 'agents:', ', '.join(agents))
     for name in agents: print(name, {k: str(v) for k, v in adapter(name).paths(ctx.home).items()})
     if args.dry_run:
+        enabled = args.with_headroom if args.with_headroom is not None else ctx.data.get('options', {}).get('headroom', False)
+        print('Headroom:', ('opt-in, pinned ' + TOOLS['headroom']['version']) if enabled else 'disabled',
+              '(session launcher only; no persistent agent configuration)')
         print('Read-only plan: bootstrap missing tools, stage upstream skills, merge owned config, validate. State:', ctx.state)
         for name in agents:
             mod = adapter(name); p = mod.paths(ctx.home)
@@ -554,7 +601,9 @@ def main():
         options = ctx.data.setdefault('options', {'serenaHooks': False, 'vercel': False})
         if args.serena_hooks is not None: options['serenaHooks'] = args.serena_hooks
         if args.with_vercel is not None: options['vercel'] = args.with_vercel
+        if args.with_headroom is not None: options['headroom'] = args.with_headroom
         if not args.skip_dependencies: dependencies(ctx, args.update)
+        install_headroom(ctx, args.update, args.skip_dependencies)
         sources(ctx, args.update)
         install_reference_cli(ctx)
         for name in agents:

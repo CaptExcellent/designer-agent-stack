@@ -96,6 +96,69 @@ Use `agent-stack reference react waterfall` or
 Read only the relevant rule. Optional production analysis uses
 `agent-stack reference optimize` after opting in.
 
+## Optional Headroom integration
+
+Headroom reduces the context sent to the model by compressing tool results. It
+complements the stack's selective retrieval and design guidance, especially during
+long sessions in large repositories. Team members have reported substantial token
+savings; this package has not independently verified those savings. Compare actual
+provider costs, latency, correctness and design output on representative tasks.
+
+Install the optional, pinned Headroom 0.37.0 runtime:
+
+```sh
+./scripts/install.sh --with-headroom
+```
+
+On Windows use `.\scripts\install.ps1 -WithHeadroom`. The choice persists across
+reinstalls. Headroom and its dependencies live in a separate private environment;
+they do not replace an existing Headroom installation. The first session may
+download compression models and take longer to start.
+
+Start a session from the project you want to work on:
+
+```sh
+agent-stack headroom --dry-run claude
+agent-stack headroom claude
+agent-stack headroom codex
+```
+
+Pass client arguments after `--`, for example
+`agent-stack headroom claude -- --model sonnet`. The launcher starts a local proxy
+on port 8788, waits for it to become ready, adds a retrieval MCP server for that
+session and stops its proxy when the client exits. Use `--port 8789` before the
+client name if the default port is occupied. Existing services are never reused
+or stopped. A proxy failure also stops the launched client.
+
+The defaults preserve prior turns for provider prompt caching (`cache` mode), keep
+retrieval of compressed originals available, and disable semantic response caching.
+The launcher reports when the optional Kompress model is not ready; a healthy
+proxy alone does not prove full compression is available. Memory, code graph and
+output shaping are not enabled. The stack never invokes
+Headroom's `wrap`, `init` or cleanup commands and adds no Headroom hooks or global
+instructions. Existing skills, Serena, models, accounts and permission settings
+remain under their current ownership. Inherited `HEADROOM_*` tuning is replaced
+with this integration's isolated session configuration.
+
+Supported routing is direct Anthropic in **Claude Code CLI** and the built-in
+OpenAI provider in **Codex CLI**. Native Claude Desktop, ChatGPT and Codex desktop
+sessions are not automatically routed by installing this option. Custom gateways,
+cloud providers and Codex profiles require a separate integration. Detected
+conflicting endpoints, RTK/Headroom hooks and routing override arguments cause an
+explicit error. Enterprise-managed settings can impose additional restrictions.
+RTK is not installed; using two compression layers needs separate evaluation.
+
+To disable future launches, run `./scripts/install.sh --no-with-headroom` or
+`.\scripts\install.ps1 -NoHeadroom`. Close any running session first. Launching
+`claude` or `codex` normally does not use this integration. Disabling or uninstalling
+preserves downloaded dependencies and local Headroom state, including proxy logs
+and potentially original tool results, under `<stack-state>/headroom/session-<port>`.
+Treat these files like local conversation history. A stale `session.lock` must be
+removed manually only after checking its recorded process is no longer running.
+
+Headroom is Apache-2.0; this stack remains MIT. See
+[third-party licensing](docs/THIRD_PARTY.md) for source, notices and model licenses.
+
 ## Update, doctor and uninstall
 
 | Operation | macOS / Linux | Windows |

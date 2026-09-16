@@ -1,4 +1,4 @@
-param([ValidateSet('auto','codex','claude-code')][string]$Agent='auto', [switch]$All, [switch]$Update, [switch]$DryRun, [switch]$SkipDependencies, [switch]$SerenaHooks, [switch]$NoSerenaHooks, [switch]$WithVercel, [switch]$NoVercel)
+param([ValidateSet('auto','codex','claude-code')][string]$Agent='auto', [switch]$All, [switch]$Update, [switch]$DryRun, [switch]$SkipDependencies, [switch]$SerenaHooks, [switch]$NoSerenaHooks, [switch]$WithVercel, [switch]$NoVercel, [switch]$WithHeadroom, [switch]$NoHeadroom)
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot/bootstrap.ps1" -ReadOnly:$DryRun
 $arguments = @("$PSScriptRoot/stack.py", 'install', '--agent', $Agent)
@@ -12,5 +12,8 @@ if ($SerenaHooks) { $arguments += '--serena-hooks' }
 if ($NoSerenaHooks) { $arguments += '--no-serena-hooks' }
 if ($WithVercel) { $arguments += '--with-vercel' }
 if ($NoVercel) { $arguments += '--no-with-vercel' }
+if ($WithHeadroom -and $NoHeadroom) { throw 'Choose WithHeadroom or NoHeadroom.' }
+if ($WithHeadroom) { $arguments += '--with-headroom' }
+if ($NoHeadroom) { $arguments += '--no-with-headroom' }
 & $env:SJOERD_PYTHON @arguments
 exit $LASTEXITCODE

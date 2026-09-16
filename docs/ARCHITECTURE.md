@@ -14,6 +14,7 @@ These are text-size estimates, not measured model billing or quality gains.
 | React + composition references | Internalize common rules, retain targeted reference files | One small module; rule paths returned on demand, not whole collections |
 | agent-browser | Keep CLI, replace instruction bundle | One semantic QA module; human subjective judgment, zero default vision |
 | Vercel Optimize | Optional | Actual authenticated production analysis only; no routine install or QA trigger |
+| Headroom | Optional, pinned, session launcher | Compress tool results in cache mode; preserve retrieval; no overlapping hooks, memory or Serena installation |
 | AI Hero workflow skills | Internalize selected ideas | Tight bug signals, compact context pointers and handoffs; reject compulsory workflow chains/review agents |
 | Emil motion skills | Merge concepts into motion modes | Purpose, interruption and reduced motion; reject overlapping skills and universal timing rules |
 | Taste Skill | Research only | Infer a small creative brief; reject large prompt and fixed aesthetic/motion presets |

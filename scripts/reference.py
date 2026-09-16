@@ -1,10 +1,14 @@
 """List bounded reference pointers, without loading whole skills into context."""
 import argparse
 import json
+import sys
 from pathlib import Path
 
 def main():
-    parser = argparse.ArgumentParser()
+    if sys.argv[1:2] == ['headroom']:
+        from headroom_runner import main as headroom_main
+        return headroom_main(sys.argv[2:])
+    parser = argparse.ArgumentParser(epilog='Optional compression sessions: agent-stack headroom --help')
     parser.add_argument('command', choices=['reference'])
     parser.add_argument('topic', choices=['react', 'composition', 'optimize'])
     parser.add_argument('terms', nargs='*')
@@ -23,4 +27,4 @@ def main():
     if not matches: print('No matching references; broaden one search term.')
     elif len(matches) > 8: print('More matches available; narrow the query.')
 
-if __name__ == '__main__': main()
+if __name__ == '__main__': sys.exit(main())

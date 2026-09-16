@@ -4,6 +4,7 @@
   "python": "3.13",
   "npm": ["ui-ux-pro-max-cli", "agent-browser", "vercel"],
   "serena": "serena-agent",
+  "headroom": {"package": "headroom-ai[proxy]", "version": "0.37.0"},
   "skillSources": {
     "vercel": "https://github.com/vercel-labs/agent-skills.git",
     "browser": "https://github.com/vercel-labs/agent-browser.git"
