@@ -9,6 +9,12 @@ Tiny edits: use nearby context and finish directly. Substantial work: scan relev
 conventions once; retain conclusions and source pointers for the task, refreshing
 only changed or conflicting evidence. Choose the cheapest adequate retrieval:
 local files for obvious edits, Serena symbols/references for larger exploration.
+Before reading broad command output, start with a narrow query: use `rg --files`,
+`rg -n` with the needed context, a bounded file range, or a focused test target.
+Avoid full-file reads, recursive listings and complete build/test logs unless the
+task requires their details. If a compact command hides evidence needed to diagnose
+or implement a change, rerun only that specific source command with the needed
+range or context.
 
 Load only relevant skills: design for visual decisions; motion for animation;
 frontend-quality for substantial React/component work; engineering-quality for

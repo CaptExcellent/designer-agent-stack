@@ -19,6 +19,8 @@ Token efficiency comes from keeping the working context focused:
   outside global skill discovery.
 - Retrieve specific symbols, files and reference rules when needed, and reuse
   findings instead of repeatedly scanning the repository.
+- Query before reading: use focused searches, bounded file ranges and targeted
+  checks instead of loading whole files or noisy command logs by default.
 - Use targeted checks and semantic browser inspection, with automated vision and
   extra agents reserved for cases where they add value.
 - Stop once the requested work and meaningful checks are complete.
