@@ -96,13 +96,13 @@ Use `agent-stack reference react waterfall` or
 Read only the relevant rule. Optional production analysis uses
 `agent-stack reference optimize` after opting in.
 
-## Optional Headroom integration
+## Optional Headroom CLI integration
 
-Headroom reduces the context sent to the model by compressing tool results. It
-complements the stack's selective retrieval and design guidance, especially during
-long sessions in large repositories. Team members have reported substantial token
-savings; this package has not independently verified those savings. Compare actual
-provider costs, latency, correctness and design output on representative tasks.
+Headroom is an optional, per-session CLI proxy that can reduce the context sent to
+the model by compressing tool results. It complements the stack's selective
+retrieval and design guidance during long sessions in large repositories. Team
+members have reported substantial token savings; compare provider costs, latency,
+correctness and design output on representative work before relying on it.
 
 Install the optional, pinned Headroom 0.37.0 runtime:
 
@@ -143,12 +143,19 @@ with this integration's isolated session configuration.
 Supported routing is direct Anthropic and AWS Bedrock in **Claude Code CLI**, and
 the built-in OpenAI provider in **Codex CLI**. For Bedrock, the launcher temporarily
 routes Claude through Headroom and lets Headroom use the existing AWS profile and
-region; it does not alter persistent AWS or Claude settings. Native Claude Desktop,
-ChatGPT and Codex desktop sessions are not automatically routed by installing this
-option. Custom gateways, other cloud providers and Codex profiles require a separate
-integration. Detected conflicting endpoints, RTK/Headroom hooks and routing override
-arguments cause an explicit error. Enterprise-managed settings can impose additional
-restrictions.
+region; it does not alter persistent AWS or Claude settings.
+
+This integration deliberately does **not** configure Headroom in Claude Desktop,
+ChatGPT or Codex desktop. A 17 September 2026 Terra Medium benchmark found that a
+direct Headroom MCP call received the full tool output only after Codex had already
+added it to context, then sent that same output again to the MCP server. The result
+was correct but used 84,179 input tokens versus 37,147 without Headroom; the 1,706
+token fixture was not compressed (`router:noop`). The proxy must sit in front of
+tool results to avoid that duplication, which the desktop clients do not route
+through automatically. Custom gateways, other cloud providers and Codex profiles
+require a separate integration. Detected conflicting endpoints, RTK/Headroom hooks
+and routing override arguments cause an explicit error. Enterprise-managed settings
+can impose additional restrictions.
 RTK is not installed; using two compression layers needs separate evaluation.
 
 To disable future launches, run `./scripts/install.sh --no-with-headroom` or
