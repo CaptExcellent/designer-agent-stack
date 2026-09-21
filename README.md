@@ -29,6 +29,26 @@ The aim is more intentional interfaces with less unnecessary context and repeate
 work. These are workflow goals, not measured guarantees of design quality or token
 savings; results depend on the task, model and project.
 
+### Desktop context discipline
+
+The shared instructions apply this retrieval guidance to local Codex and ChatGPT
+desktop tasks: identify the relevant records first, then read only their needed
+context. This is instruction-based guidance, not a proxy, hook, MCP server or
+additional runtime. Start a new task after installing or updating the stack so the
+client reads the revised global instructions.
+
+In a synthetic Terra Medium check on 17 September 2026, an instruction-driven
+`rg -n -i -C 4 "urgent"` query returned all five requested records correctly with
+36,115 input tokens, compared with 41,601 for a forced whole-file `cat` baseline.
+The result illustrates the value of a narrow query for a large, noisy file; it is
+not a general token- or cost-savings guarantee.
+
+RTK was evaluated but is not installed, configured or distributed by this stack.
+Its Codex integration relies on instructions rather than a transparent command
+interceptor, so it does not add a separate desktop saving layer beyond this native
+retrieval guidance. See [third-party licensing](docs/THIRD_PARTY.md) for the
+evaluation and future-integration boundary.
+
 ## Install
 
 Requires Git, internet access, and an installed supported client for automatic

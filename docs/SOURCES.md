@@ -24,6 +24,21 @@ the 1,706-token fixture. This validates that direct desktop-style MCP use is not
 token-saving substitute for proxy routing; it does not measure a proxy-routed CLI
 session, a desktop UI conversation or a live Windows/Linux session.
 
+Desktop context-discipline check, 2026-09-17:
+
+- A real Terra Medium Codex run with the installed global instructions selected
+  `rg -n -i -C 4 "urgent"` for a synthetic research archive and returned all five
+  required records. It reported 36,115 input tokens; the forced `cat` baseline
+  reported 41,601. This compares instruction-selected targeted retrieval with a
+  forced whole-file read, so it is directional evidence for the stack guidance
+  rather than a general provider-cost claim.
+- [RTK v0.49.0 README](https://github.com/rtk-ai/rtk/blob/v0.49.0/README.md):
+  Codex support uses `AGENTS.md` and `RTK.md` instructions; it is not listed as a
+  transparent hook integration. RTK is evaluated only and not a stack dependency.
+- [RTK v0.49.0 license](https://github.com/rtk-ai/rtk/blob/v0.49.0/LICENSE):
+  Apache License 2.0. No RTK artifact, code or configuration is distributed by this
+  repository.
+
 - [Codex skills](https://learn.chatgpt.com/docs/build-skills): user skills at `~/.agents/skills`; duplicate names are not merged.
 - [Codex instructions](https://developers.openai.com/codex/guides/agents-md): global `AGENTS.md` under CODEX_HOME, with repository precedence.
 - [Codex hooks](https://learn.chatgpt.com/docs/hooks): hooks.json, enabled by default, exact-definition trust review through `/hooks`. `hooks` is canonical; `codex_hooks` is a deprecated alias.

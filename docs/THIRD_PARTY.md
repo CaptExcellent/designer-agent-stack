@@ -1,4 +1,4 @@
-# Optional Headroom dependency
+# Third-party dependency and evaluation boundary
 
 Designer Agent Stack is MIT licensed. The optional installer downloads
 `headroom-ai[proxy]==0.37.0` into a private uv tool environment. This repository
@@ -24,4 +24,18 @@ The stack does not install the `all`, memory, or PyTorch ML extras.
 
 The top-level Headroom release is pinned; transitive packages and externally fetched
 model revisions are not fully locked. Re-check their licenses when changing the
-release, extras or model configuration. RTK is not a dependency of this integration.
+release, extras or model configuration.
+
+## RTK evaluation only
+
+RTK v0.49.0 was reviewed as a possible shell-output optimizer. Its upstream source
+is [Apache License 2.0](https://github.com/rtk-ai/rtk/blob/v0.49.0/LICENSE).
+Designer Agent Stack does not list RTK as a dependency and does not download,
+bundle, invoke, configure or distribute its source, binary, hooks, `RTK.md`, or
+telemetry configuration. The desktop context-discipline instructions are original
+guidance using native focused commands; they are not derived from RTK source code.
+
+Consequently, the current MIT distribution has no RTK binary or NOTICE obligation.
+If RTK is added later, pin the reviewed release, preserve its Apache-2.0 license and
+any upstream NOTICE required for the selected distribution, disclose its telemetry
+behavior, and test its hook against the existing Headroom session launcher.

@@ -14,7 +14,9 @@ These are text-size estimates, not measured model billing or quality gains.
 | React + composition references | Internalize common rules, retain targeted reference files | One small module; rule paths returned on demand, not whole collections |
 | agent-browser | Keep CLI, replace instruction bundle | One semantic QA module; human subjective judgment, zero default vision |
 | Vercel Optimize | Optional | Actual authenticated production analysis only; no routine install or QA trigger |
+| Desktop context discipline | Keep as original instructions | Prefer targeted native queries and bounded reads; no extra desktop MCP, proxy, hook or runtime |
 | Headroom | Optional, pinned, session launcher | Compress tool results in cache mode; preserve retrieval; no overlapping hooks, memory or Serena installation |
+| RTK | Evaluation only | Apache-2.0 upstream; Codex uses instructions rather than transparent command interception, so no RTK binary, hook or configuration is shipped |
 | AI Hero workflow skills | Internalize selected ideas | Tight bug signals, compact context pointers and handoffs; reject compulsory workflow chains/review agents |
 | Emil motion skills | Merge concepts into motion modes | Purpose, interruption and reduced motion; reject overlapping skills and universal timing rules |
 | Taste Skill | Research only | Infer a small creative brief; reject large prompt and fixed aesthetic/motion presets |
@@ -37,6 +39,12 @@ Stable conventions and source pointers are reused within a task; changes invalid
 the relevant conclusions. No persistent semantic cache is added: invalidation and
 private-source leakage risks outweigh demonstrated savings here. Browser rechecks
 target changed regions; no custom browser cache duplicates the existing CLI.
+
+The 17 September 2026 Terra Medium benchmark compared an instruction-selected
+targeted `rg` query with a forced full-file `cat` against a synthetic research
+archive. Both produced the five required records; the targeted query used 36,115
+input tokens versus 41,601. This is evidence for narrow retrieval on comparable
+tasks, not a general billing claim or evidence that RTK itself caused the result.
 
 Tool/schema loading belongs to each client. The stack does not promise to remove
 all Serena schemas or unrelated plugin descriptions from model context. No invented
