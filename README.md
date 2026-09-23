@@ -198,6 +198,7 @@ Headroom is Apache-2.0; this stack remains MIT. See
 | Update dependencies and skills | `./scripts/install.sh --update` | `.\scripts\install.ps1 -Update` |
 | Diagnostic only | `./scripts/doctor.sh` | `.\scripts\doctor.ps1` |
 | Read-only installation plan | `./scripts/install.sh --dry-run` | `.\scripts\install.ps1 -DryRun` |
+| Preview uninstall without changes | `./scripts/uninstall.sh --dry-run` | `.\scripts\uninstall.ps1 -DryRun` |
 | Remove integrations | `./scripts/uninstall.sh` | `.\scripts\uninstall.ps1` |
 
 Use `git pull --ff-only` to update this package's installer and canonical files
@@ -209,11 +210,15 @@ Installations record resolved npm versions and skill source commit IDs in a loca
 manifest. Current supported releases are preferred. A clean clone plus installation
 reproduces the workflow; this is not an offline mirror of all upstream dependencies.
 
-Uninstall removes only unchanged owned skills, marked instruction/MCP blocks,
-exact owned JSON entries/hooks, and PATH entries added by the package. User edits
-are preserved with warnings. It keeps runtimes, downloaded tools, browser caches,
-backups and the manifest, since other software may now depend on them. It never
-restores backups automatically. These private runtime files are outside the repo.
+Preview uninstall first to inspect each managed item that would be removed or
+preserved. Resolve any `blocked (review needed)` item before running uninstall;
+it stops before changing files. Uninstall removes only unchanged owned skills,
+marked instruction/MCP blocks, exact owned JSON entries/hooks, and PATH
+entries added by the package.
+User edits are preserved with warnings. It keeps runtimes, downloaded tools,
+browser caches, backups and the manifest, since other software may now depend
+on them. It never restores backups automatically. These private runtime files
+are outside the repo.
 
 ## How it works
 

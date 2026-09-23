@@ -102,6 +102,38 @@ class ManagementTests(unittest.TestCase):
         self.assertFalse(target.exists())
         self.assertTrue(list((self.ctx.state / 'backups').rglob('SKILL.md')))
 
+    def test_uninstall_preview_is_read_only_and_identifies_changed_items(self):
+        instructions = self.home / 'INSTRUCTIONS.md'
+        self.ctx.block(instructions, 'workflow', 'owned')
+        source = self.home / 'source'; source.mkdir()
+        (source / 'SKILL.md').write_text('skill')
+        target = self.home / 'skills/test'
+        self.ctx.skill(source, target)
+        (target / 'notes.txt').write_text('user edit')
+        config = self.home / 'settings.json'
+        self.ctx.json_value(config, ['mcpServers', 'serena'], {'command': 'owned'})
+        before = stack.tree_hash(self.home)
+        actions = stack.uninstall_plan(self.ctx)
+        self.assertEqual(before, stack.tree_hash(self.home))
+        self.assertIn(('remove', 'instruction block', instructions), actions)
+        self.assertIn(('preserve (changed)', 'skill', target), actions)
+        self.assertIn(('remove', 'JSON setting', config), actions)
+
+    def test_uninstall_preview_flags_malformed_markers_for_review(self):
+        path = self.home / 'INSTRUCTIONS.md'
+        self.ctx.block(path, 'workflow', 'owned')
+        source = self.home / 'source'; source.mkdir()
+        (source / 'SKILL.md').write_text('skill')
+        target = self.home / 'skills/test'
+        self.ctx.skill(source, target)
+        path.write_text(path.read_text().replace('<!-- END sjoerd-agent-stack:workflow -->', ''))
+        self.assertIn(('blocked (review needed)', 'instruction block', path), stack.uninstall_plan(self.ctx))
+        before = stack.tree_hash(self.home)
+        with self.assertRaisesRegex(RuntimeError, 'stopped before changes'):
+            stack.uninstall(self.ctx)
+        self.assertEqual(before, stack.tree_hash(self.home))
+        self.assertTrue(target.exists())
+
     def test_unmanaged_mcp_refused(self):
         mod = stack.adapter('codex'); paths = mod.paths(self.home)
         paths['config'].parent.mkdir()

@@ -504,7 +504,70 @@ def doctor(ctx):
     print('Restart clients after changes. Optional hook trust and authenticated behavior require a fresh session.')
     return 1 if ctx.failures else 0
 
+def uninstall_plan(ctx):
+    """Describe manifest-owned cleanup without changing files or state."""
+    actions = []
+    for ident, expected in ctx.data.get('files', {}).items():
+        path = Path(ident)
+        if not path.exists(): continue
+        status = 'remove' if path.is_file() and digest(path.read_bytes()) == expected else 'preserve (changed)'
+        actions.append((status, 'helper', path))
+    for ident, record in ctx.data['skills'].items():
+        path = Path(ident)
+        if not (path.exists() or path.is_symlink()): continue
+        owned_link = path.is_symlink() and str(path.readlink()) == record.get('link')
+        owned_tree = path.is_dir() and not path.is_symlink() and tree_hash(path) == record['hashes']
+        actions.append(('remove' if owned_link or owned_tree else 'preserve (changed)', 'skill', path))
+    for record in ctx.data['blocks'].values():
+        path = Path(record['path'])
+        try:
+            text = ctx.read(path)
+            span = ctx.block_span(text, record['key'], record['prefix'])
+            if span is None: continue
+            owned = block_digest(text[span[0]:span[1]]) == record['hash']
+            status = 'remove' if owned else 'preserve (changed)'
+        except (OSError, UnicodeError, RuntimeError):
+            status = 'blocked (review needed)'
+        actions.append((status, 'instruction block', path))
+    for ident, records in ctx.data['hooks'].items():
+        path = Path(ident)
+        if not path.exists(): continue
+        try:
+            hooks = ctx.json_read(path).get('hooks', {})
+            for record in records:
+                owned = record['group'] in hooks.get(record['event'], [])
+                actions.append(('remove' if owned else 'preserve (changed)', 'hook', path))
+        except (OSError, UnicodeError, ValueError, AttributeError, TypeError, KeyError):
+            actions.append(('blocked (review needed)', 'hooks', path))
+    for record in ctx.data['json'].values():
+        path = Path(record['path'])
+        if not path.exists(): continue
+        try:
+            current = ctx.json_read(path)
+            for key in record['keys'][:-1]: current = current.get(key, {})
+            value = current.get(record['keys'][-1])
+            status = 'remove' if value == record['value'] else 'preserve (changed)'
+        except (OSError, UnicodeError, ValueError, AttributeError, TypeError, KeyError):
+            status = 'blocked (review needed)'
+        actions.append((status, 'JSON setting', path))
+    if WIN and ctx.data.get('pathEntries'):
+        for entry in ctx.data['pathEntries']:
+            actions.append(('remove if present', 'user PATH entry', Path(entry)))
+    return actions
+
+def print_uninstall_plan(ctx):
+    actions = uninstall_plan(ctx)
+    print('Uninstall preview (no changes):')
+    for status, kind, path in actions:
+        print(f'  {status}: {kind}: {path}')
+    if not actions: print('  No managed integrations found.')
+    print('Private runtimes, downloads, backups and the manifest are retained.')
+
 def uninstall(ctx):
+    blocked = [(kind, path) for status, kind, path in uninstall_plan(ctx) if status.startswith('blocked')]
+    if blocked:
+        details = ', '.join(f'{kind}: {path}' for kind, path in blocked)
+        raise RuntimeError(f'Uninstall stopped before changes; review malformed managed configuration: {details}')
     for ident, expected in list(ctx.data.get('files', {}).items()):
         path = Path(ident)
         if path.exists() and digest(path.read_bytes()) == expected:
@@ -577,7 +640,10 @@ def main():
     args = parser.parse_args()
     ctx = Context()
     if args.command == 'doctor': return doctor(ctx)
-    if args.command == 'uninstall': uninstall(ctx); return 0
+    if args.command == 'uninstall':
+        if args.dry_run: print_uninstall_plan(ctx)
+        else: uninstall(ctx)
+        return 0
     agents = ['codex', 'claude-code'] if args.all else ([args.agent] if args.agent != 'auto' else
               [a for a in ['codex', 'claude-code'] if shutil.which(adapter(a).CLI, path=ctx.env['PATH'])])
     if not agents: raise RuntimeError('No supported agent detected. Install a client, or select --agent explicitly to prepare its config.')
